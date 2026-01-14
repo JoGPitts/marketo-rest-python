@@ -342,7 +342,8 @@ class MarketoClient:
                     'remove_named_account_list_members': self.remove_named_account_list_members,
                     'get_named_account_lists': self.get_named_account_lists,
                     'sync_named_account_lists': self.sync_named_account_lists,
-                    'delete_named_account_lists': self.delete_named_account_lists
+                    'delete_named_account_lists': self.delete_named_account_lists,
+                    'get_fields': self.get_fields
                 }
                 result = method_map[method](*args, **kargs)
             except MarketoException as e:
@@ -5974,6 +5975,35 @@ class MarketoClient:
                     break
                 else:
                     args['nextPageToken'] = result['nextPageToken']
+
+    def get_fields(self, batchSize=None):
+        self.authenticate()
+        args = {
+            'access_token': self.token,
+            '_method': 'GET'
+        }
+        if batchSize is not None:
+            args['batchSize'] = batchSize
+        result_list = []
+        while True:
+            self.authenticate()
+            # for long-running processes, this updates the access token
+            args['access_token'] = self.token
+            result = self._api_call('post', self.host + "/rest/v1/leads/schema/fields.json", args,
+                                    mode='nojsondumps')
+            if result is None:
+                raise Exception("Empty Response")
+            if 'result' in result:
+                result_list.extend(result['result'])
+                if len(result['result']) == 0 or 'nextPageToken' not in result:
+                    break
+                args['nextPageToken'] = result['nextPageToken']
+
+            if len(result['result']) == 0 or 'nextPageToken' not in result:
+                break
+            else:
+                args['nextPageToken'] = result['nextPageToken']
+        return result_list
 
     def sync_named_account_lists(self):
         pass
